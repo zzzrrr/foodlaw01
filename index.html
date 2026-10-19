@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>食品法規大稽查 - 打地鼠挑戰</title>
+    <style>
+        :root {
+            --primary: #0284c7;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --hole-edge: #78350f;
+            --hole-dark: #381a04;
+            --bg-color: #f0fdf4;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #e0f2fe 0%, #ecfdf5 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 16px;
+            color: #1e293b;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 12px;
+            max-width: 500px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 6px;
+            color: #0f172a;
+        }
+
+        .guide-box {
+            font-size: 0.85rem;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 14px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+            line-height: 1.4;
+        }
+
+        .badge-danger {
+            color: var(--danger);
+            font-weight: bold;
+        }
+
+        .badge-success {
+            color: var(--success);
+            font-weight: bold;
+        }
+
+        /* 儀表板 */
+        .dashboard {
+            width: 100%;
+            max-width: 450px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #ffffff;
+            padding: 12px 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+            margin-bottom: 16px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #64748b;
+            display: block;
+        }
+
+        .stat-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+
+        .hearts {
+            letter-spacing: 2px;
+            font-size: 1.1rem;
+        }
+
+        /* 3x3 響應式九宮格 */
+        .grid {
+            width: 100%;
+            max-width: 450px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            aspect-ratio: 1;
+            margin-bottom: 16px;
+        }
+
+        .hole {
+            background: radial-gradient(circle at bottom, var(--hole-dark) 20%, var(--hole-edge) 80%);
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+            border: 4px solid #a16207;
+            box-shadow: inset 0 8px 12px rgba(0,0,0,0.6), 0 3px 6px rgba(0,0,0,0.1);
+            cursor: pointer;
+        }
+
+        /* 冒出的卡牌 */
+        .mole {
+            position: absolute;
+            bottom: -110%;
+            left: 6%;
+            width: 88%;
+            height: 88%;
+            background: #ffffff;
+            border-radius: 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 6px;
+            text-align: center;
+            transition: bottom 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 -4px 8px rgba(0,0,0,0.15);
+            border: 2px solid #cbd5e1;
+            touch-action: manipulation;
+        }
+
+        .mole.up {
+            bottom: 6%;
+        }
+
+        .mole-text {
+            font-size: 0.95rem;
+            font-weight: bold;
+            color: #1e293b;
+            line-height: 1.2;
+            pointer-events: none;
+        }
+
+        /* 浮動提示反饋 */
+        .feedback {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1rem;
+            font-weight: bold;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.5s ease-out;
+            white-space: nowrap;
+            z-index: 10;
+        }
+
+        .feedback.show {
+            opacity: 1;
+            transform: translate(-50%, -120%);
+        }
+
+        /* 按鈕樣式 */
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            font-size: 1.05rem;
+            font-weight: bold;
+            border-radius: 9999px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px -1px rgba(2, 132, 199, 0.3);
+            transition: transform 0.1s, background-color 0.2s;
+        }
+
+        .btn:active {
+            transform: scale(0.96);
+        }
+
+        /* 遊戲結束彈窗 */
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            z-index: 99;
+        }
+
+        .modal-body {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+            animation: zoomIn 0.25s ease-out;
+        }
+
+        @keyframes zoomIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .modal-title {
+            font-size: 1.4rem;
+            color: var(--danger);
+            margin-bottom: 12px;
+        }
+
+        .modal-desc {
+            font-size: 0.95rem;
+            color: #475569;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 380px) {
+            .mole-text {
+                font-size: 0.8rem;
+            }
+            .stat-value {
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🔨 食品法規大稽查</h1>
+        <div class="guide-box">
+            🎯 點擊敲擊：<span class="badge-danger">【違規醫療效能／誇大詞彙】</span>（+10分）<br>
+            ✋ 切勿點擊：<span class="badge-success">【合規通常生理功能描述】</span><br>
+            ⚠️ 誤打合法或漏抓違規均計 1 次失誤，<b>累計 5 次遊戲結束</b>！
+        </div>
+    </header>
+
+    <div class="dashboard">
+        <div class="stat-item">
+            <span class="stat-label">目前得分</span>
+            <span class="stat-value" id="score" style="color: var(--primary);">0</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">生命值（剩餘容錯）</span>
+            <span class="hearts" id="hearts">❤️❤️❤️❤️❤️</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">失誤計數</span>
+            <span class="stat-value" id="mistakes" style="color: var(--danger);">0 / 5</span>
+        </div>
+    </div>
+
+    <div class="sound-controls" style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap; justify-content:center;">
+        <button type="button" id="music-btn" aria-pressed="true" style="padding:8px 14px; border:1px solid #bae6fd; border-radius:20px; background:white; cursor:pointer;">🎵 音樂：開</button>
+        <button type="button" id="effects-btn" aria-pressed="true" style="padding:8px 14px; border:1px solid #bae6fd; border-radius:20px; background:white; cursor:pointer;">🔔 音效：開</button>
+    </div>
+    <p style="font-size:0.78rem; color:#64748b; margin-bottom:12px;">探頭時間加長 1 秒 · 按下開始即可播放音樂</p>
+    <!-- 3x3 地洞 -->
+    <div class="grid" id="grid"></div>
+
+    <button class="btn" id="start-btn">開始巡查遊戲</button>
+
+    <!-- 遊戲結束結算彈窗 -->
+    <div class="modal" id="game-over-modal">
+        <div class="modal-body">
+            <div class="modal-title">🚨 稽查任務結束！</div>
+            <div class="modal-desc">
+                您已累積達 5 次判定失誤。<br>
+                最終稽查成績：<strong id="final-score" style="font-size: 1.5rem; color: var(--primary);">0</strong> 分<br><br>
+                <div style="text-align: left; background: #f8fafc; padding: 10px; border-radius: 8px; font-size: 0.82rem; color: #64748b;">
+                    💡 <b>法規重點：</b><br>
+                    食品本質為提供營養，依法<b>絕不可宣稱療效</b>（如降血壓、防癌）。僅可適度使用「調節生理機能」、「滋補強身」等一般生理描述。
+                </div>
+            </div>
+            <button class="btn" onclick="restartGame()">重新挑戰</button>
+        </div>
+    </div>
+
+    <script>
+        // 題庫設定（根據台灣食藥署公告之食品常見宣稱規範）
+        const vocabBank = [
+            // 違規詞彙（涉醫療效能/誇大） -> 應該敲擊
+            { text: "降血壓", isIllegal: true },
+            { text: "消炎止痛", isIllegal: true },
+            { text: "抑制癌細胞", isIllegal: true },
+            { text: "治痛風結石", isIllegal: true },
+            { text: "修復軟骨組織", isIllegal: true },
+            { text: "預防糖尿病", isIllegal: true },
+            { text: "溶解血栓", isIllegal: true },
+            { text: "快速排毒瘦身", isIllegal: true },
+            { text: "改善近視眼疾", isIllegal: true },
+            { text: "治療過敏體質", isIllegal: true },
+            
+            // 合法通常可使用之詞句（生理調節/營養補充） -> 不可敲擊
+            { text: "促進新陳代謝", isIllegal: false },
+            { text: "調整體質", isIllegal: false },
+            { text: "調節生理機能", isIllegal: false },
+            { text: "使排便順暢", isIllegal: false },
+            { text: "滋補強身", isIllegal: false },
+            { text: "增強體力", isIllegal: false },
+            { text: "營養補給", isIllegal: false },
+            { text: "養顏美容", isIllegal: false },
+            { text: "幫助入睡", isIllegal: false },
+            { text: "維持消化道機能", isIllegal: false }
+        ];
+
+        const TOTAL_HOLES = 9;
+        const MAX_MISTAKES = 5;
+
+        let score = 0;
+        let mistakes = 0;
+        let isGameRunning = false;
+        let activeHoles = new Set();
+        let moleTimers = {};
+        let loopTimeout = null;
+
+        // 原創玩具音樂盒旋律；所有聲音均在本機合成，可離線遊玩。
+        let audioCtx = null;
+        let musicBus, effectsBus, musicTimer = null, nextBeat = 0, beat = 0;
+        let musicEnabled = true, effectsEnabled = true;
+        const melody = [72,76,79,76,77,81,79,76,74,77,79,77,76,74,72,null,
+                        76,79,84,79,81,79,77,76,74,76,77,74,72,null,72,null];
+        function initAudio() {
+            try {
+                if (!audioCtx) {
+                    const Audio = window.AudioContext || window.webkitAudioContext;
+                    if (!Audio) return false;
+                    audioCtx = new Audio();
+                    musicBus = audioCtx.createGain();
+                    effectsBus = audioCtx.createGain();
+                    musicBus.gain.value = musicEnabled ? 0.55 : 0;
+                    effectsBus.gain.value = effectsEnabled ? 0.8 : 0;
+                    musicBus.connect(audioCtx.destination);
+                    effectsBus.connect(audioCtx.destination);
+                }
+                if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+                return true;
+            } catch (e) { return false; }
+        }
+        function note(midi, at, duration, volume, bus, type = 'sine') {
+            if (!audioCtx || midi === null) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.value = 440 * Math.pow(2, (midi - 69) / 12);
+            gain.gain.setValueAtTime(0, at);
+            gain.gain.linearRampToValueAtTime(volume, at + 0.012);
+            gain.gain.exponentialRampToValueAtTime(0.0001, at + duration);
+            osc.connect(gain); gain.connect(bus);
+            osc.onended = () => { osc.disconnect(); gain.disconnect(); };
+            osc.start(at); osc.stop(at + duration + 0.02);
+        }
+        function playEffect(kind) {
+            if (!effectsEnabled || !audioCtx || document.hidden) return;
+            const patterns = {
+                start: [72,76,79,84], pop: [67,79], hit: [79,84,88],
+                wrong: [64,60,55], miss: [67,62], end: [79,76,72,67,60]
+            };
+            const pattern = patterns[kind] || patterns.hit;
+            pattern.forEach((n, i) => note(n, audioCtx.currentTime + i * 0.075,
+                kind === 'end' ? 0.35 : 0.18, kind === 'pop' ? 0.035 : 0.12, effectsBus, 'triangle'));
+        }
+        function startMusic() {
+            stopMusic();
+            if (!audioCtx || !musicEnabled || !isGameRunning || document.hidden) return;
+            beat = 0; nextBeat = audioCtx.currentTime + 0.1;
+            function schedule() {
+                while (nextBeat < audioCtx.currentTime + 0.15) {
+                    note(melody[beat % melody.length], nextBeat, 0.23, 0.085, musicBus);
+                    if (beat % 2 === 0) {
+                        const bass = [48,53,55,48][Math.floor(beat / 8) % 4];
+                        note(bass, nextBeat, 0.28, 0.05, musicBus, 'triangle');
+                    }
+                    beat++; nextBeat += 0.24;
+                }
+            }
+            schedule(); musicTimer = setInterval(schedule, 50);
+        }
+        function stopMusic() {
+            clearInterval(musicTimer); musicTimer = null;
+        }
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                stopMusic();
+                if (audioCtx) audioCtx.suspend().catch(() => {});
+            } else if (audioCtx && isGameRunning) {
+                audioCtx.resume().then(startMusic).catch(() => {});
+            }
+        });
+
+        // 初始化地洞與卡片 DOM
+        const grid = document.getElementById('grid');
+        for (let i = 0; i < TOTAL_HOLES; i++) {
+            const hole = document.createElement('div');
+            hole.className = 'hole';
+
+            const mole = document.createElement('div');
+            mole.className = 'mole';
+            mole.innerHTML = `<span class="mole-text"></span>`;
+
+            const feedback = document.createElement('div');
+            feedback.className = 'feedback';
+
+            hole.appendChild(mole);
+            hole.appendChild(feedback);
+            hole.addEventListener('click', () => handleHit(i));
+            grid.appendChild(hole);
+        }
+
+        const scoreEl = document.getElementById('score');
+        const mistakesEl = document.getElementById('mistakes');
+        const heartsEl = document.getElementById('hearts');
+        const startBtn = document.getElementById('start-btn');
+        const modal = document.getElementById('game-over-modal');
+        const finalScoreEl = document.getElementById('final-score');
+
+        startBtn.addEventListener('click', startGame);
+        document.getElementById('music-btn').addEventListener('click', function () {
+            musicEnabled = !musicEnabled;
+            initAudio();
+            if (musicBus) musicBus.gain.setValueAtTime(musicEnabled ? 0.55 : 0, audioCtx.currentTime);
+            this.textContent = musicEnabled ? '🎵 音樂：開' : '🎵 音樂：關';
+            this.setAttribute('aria-pressed', String(musicEnabled));
+            if (musicEnabled) startMusic(); else stopMusic();
+        });
+        document.getElementById('effects-btn').addEventListener('click', function () {
+            effectsEnabled = !effectsEnabled;
+            initAudio();
+            if (effectsBus) effectsBus.gain.setValueAtTime(effectsEnabled ? 0.8 : 0, audioCtx.currentTime);
+            this.textContent = effectsEnabled ? '🔔 音效：開' : '🔕 音效：關';
+            this.setAttribute('aria-pressed', String(effectsEnabled));
+            if (effectsEnabled) playEffect('hit');
+        });
+
+        function startGame() {
+            if (isGameRunning) return;
+            score = 0;
+            mistakes = 0;
+            isGameRunning = true;
+            activeHoles.clear();
+            initAudio();
+            startMusic();
+            playEffect('start');
+            updateDashboard();
+
+            startBtn.style.display = 'none';
+            modal.style.display = 'none';
+
+            gameLoop();
+        }
+
+        function gameLoop() {
+            if (!isGameRunning) return;
+            spawnMole();
+
+            // 難度遞增：隨得分提升縮短生成間隔（最低 650ms）
+            const nextDelay = Math.max(650, 1200 - Math.floor(score / 50) * 60);
+            loopTimeout = setTimeout(gameLoop, nextDelay);
+        }
+
+        function spawnMole() {
+            const idleHoles = [];
+            for (let i = 0; i < TOTAL_HOLES; i++) {
+                if (!activeHoles.has(i)) idleHoles.push(i);
+            }
+            if (idleHoles.length === 0) return;
+
+            const holeIdx = idleHoles[Math.floor(Math.random() * idleHoles.length)];
+            const item = vocabBank[Math.floor(Math.random() * vocabBank.length)];
+
+            activeHoles.add(holeIdx);
+
+            const hole = grid.children[holeIdx];
+            const mole = hole.querySelector('.mole');
+            const moleText = hole.querySelector('.mole-text');
+
+            moleText.textContent = item.text;
+            mole.dataset.illegal = item.isIllegal;
+            mole.dataset.clicked = "false";
+            mole.classList.add('up');
+            playEffect('pop');
+
+            // 各難度均比原版延長 1000ms（最高 3 秒，最低 2.2 秒）
+            const stayDuration = Math.max(1200, 2000 - Math.floor(score / 40) * 80) + 1000;
+
+            moleTimers[holeIdx] = setTimeout(() => {
+                // 如果是「違規詞彙」且玩家完全沒點擊，算漏抓（扣命）
+                if (mole.dataset.clicked === "false" && mole.dataset.illegal === "true" && isGameRunning) {
+                    playEffect('miss');
+                    showFeedback(holeIdx, "漏抓違規! -1❤️", false);
+                    recordMistake();
+                }
+                retractMole(holeIdx);
+            }, stayDuration);
+        }
+
+        function retractMole(holeIdx) {
+            const hole = grid.children[holeIdx];
+            const mole = hole.querySelector('.mole');
+            mole.classList.remove('up');
+            activeHoles.delete(holeIdx);
+            clearTimeout(moleTimers[holeIdx]);
+        }
+
+        function handleHit(holeIdx) {
+            if (!isGameRunning) return;
+            const hole = grid.children[holeIdx];
+            const mole = hole.querySelector('.mole');
+
+            if (!mole.classList.contains('up') || mole.dataset.clicked === "true") return;
+
+            mole.dataset.clicked = "true";
+            const isIllegal = mole.dataset.illegal === "true";
+
+            if (isIllegal) {
+                // 成功抓獲違規
+                score += 10;
+                playEffect('hit');
+                showFeedback(holeIdx, "+10 查獲違規！", true);
+                retractMole(holeIdx);
+            } else {
+                // 誤打合規詞彙（失誤）
+                playEffect('wrong');
+                showFeedback(holeIdx, "誤罰合規! -1❤️", false);
+                recordMistake();
+                retractMole(holeIdx);
+            }
+
+            updateDashboard();
+        }
+
+        function showFeedback(holeIdx, text, isPositive) {
+            const hole = grid.children[holeIdx];
+            const fb = hole.querySelector('.feedback');
+            fb.textContent = text;
+            fb.style.color = isPositive ? 'var(--success)' : 'var(--danger)';
+            fb.classList.add('show');
+
+            setTimeout(() => {
+                fb.classList.remove('show');
+            }, 600);
+        }
+
+        function recordMistake() {
+            mistakes++;
+            updateDashboard();
+
+            if (mistakes >= MAX_MISTAKES) {
+                endGame();
+            }
+        }
+
+        function updateDashboard() {
+            scoreEl.textContent = score;
+            mistakesEl.textContent = `${mistakes} / ${MAX_MISTAKES}`;
+
+            let heartsString = "";
+            for (let i = 0; i < MAX_MISTAKES; i++) {
+                heartsString += (i < MAX_MISTAKES - mistakes) ? "❤️" : "🖤";
+            }
+            heartsEl.textContent = heartsString;
+        }
+
+        function endGame() {
+            isGameRunning = false;
+            stopMusic();
+            playEffect('end');
+            clearTimeout(loopTimeout);
+
+            for (let i = 0; i < TOTAL_HOLES; i++) {
+                retractMole(i);
+            }
+
+            finalScoreEl.textContent = score;
+            modal.style.display = 'flex';
+        }
+
+        function restartGame() {
+            modal.style.display = 'none';
+            startGame();
+        }
+    </script>
+</body>
+</html>
